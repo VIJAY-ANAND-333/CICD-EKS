@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: car-mod-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:487383300987:certificate/b6015ec9-a880-4011-ba14-e7175a40678b"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9000"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: car-mod
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 9000
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 9000
+  type: LoadBalancer
