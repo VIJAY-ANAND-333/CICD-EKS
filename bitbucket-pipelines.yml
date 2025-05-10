@@ -1,0 +1,42 @@
+image: atlassian/default-image:3  
+
+options:
+  runtime:
+    cloud:
+      atlassian-ip-ranges: true
+
+pipelines:
+  branches:
+    development:
+      - step:
+          name: Build and Push to ECR
+          size: 4x
+          services:
+            - docker
+          script:
+            - apt-get update && apt-get install -y python3-pip
+            - pip3 install -U awscli
+            - docker build -t $ECR_REPO .
+            - docker tag $ECR_REPO:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+            - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+            - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+
+      - step:
+          deployment: development
+          size: 4x
+          name: Update EKS Deployment
+          script:
+            - apt-get update && apt-get install -y python3-pip
+            - pip3 install -U awscli
+            - curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
+            - chmod +x kubectl
+            - mv kubectl /usr/local/bin/
+            - aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER
+            - kubectl apply -f manifests/deployment.yml
+            - kubectl rollout restart deployment.apps/car-mod-deployment -n default
+            - kubectl rollout status deployment.apps/car-mod-deployment -n default
+
+definitions:
+  services:
+    docker:
+      memory: 2048

@@ -1,0 +1,8 @@
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs:
+      - job_name: 'flask-app'
+        scheme: 'https'  
+        static_configs:
+          - targets: ['< your domain >:443']
+        metrics_path: /metrics
